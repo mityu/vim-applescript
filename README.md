@@ -1,7 +1,7 @@
 # Vim-applescript  
 Syntax file from: http://www.fastnlight.com/syntax/applescript  
   
-## Userge  
+## Usage  
 ### Commands (for Mac)  
 `:[range]AppleScriptRun`  
 Execute current buffer as AppleScript.  
