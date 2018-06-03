@@ -1,6 +1,8 @@
 "Plugin Name: applescript filetype plugin
 "Author: mityu
-"Last Change: 02-May-2017.
+"Last Change: 03-Jun-2018.
+
+scriptencoding utf-8
 
 if exists('b:did_ftplugin')
 	finish
@@ -15,74 +17,141 @@ inoremap <buffer> \<CR> ¬<CR>
 
 setlocal fo-=t fo+=croql
 setlocal commentstring=--%s
-setlocal comments=sO:*\ -,mO:*\ \ ,exO:*),s1:(*,mb:*,ex:*),:--
+setlocal comments=sO:*\ -,mxO:*\ \ ,exO:*),s1:(*,mb:*,ex:*),:--
 
 augroup ftplugin-applescript
 	au!
 augroup END
 
-func! s:formatCode(line1,line2)
-	return substitute(shellescape(join(getline(a:line1,a:line2),"\n")),'\\\n',"\n",'g')
-endfunc
+"func! s:formatCode(line1,line2)
+"	return substitute(shellescape(join(getline(a:line1,a:line2),"\n")),'\\\n',"\n",'g')
+"endfunc
+
+let s:default_config = {}
+let s:default_config.run = {
+			\'output': {
+			\	'buffer_name': '[AppleScriptRun Output]',
+			\	'open_command': 'botright split'
+			\	}
+			\}
+func! s:bufnr(expr) abort "{{{
+	if type(a:expr) == type('')
+		return bufnr(escape(a:expr,'\/[]^$*.?'))
+	else
+		return a:expr
+	endif
+endfunc "}}}
+func! s:bufexists(expr) abort "{{{
+	return s:bufnr(a:expr) != -1
+endfunc "}}}
+func! s:bufexists_on_this_tab(expr) abort "{{{
+	return s:bufexists(a:expr) && bufwinnr(s:bufnr(a:expr)) != -1
+endfunc "}}}
+func! s:goto_win(expr) abort "{{{
+	execute bufwinnr(s:bufnr(a:expr)) 'wincmd w'
+endfunc "}}}
+func! s:tempfile() abort "{{{
+	return tempname() . '.applescript'
+endfunc "}}}
 
 if executable('osascript')
-	com! -range=% -buffer AppleScriptRun call s:runApplescript(<line1>,<line2>)
+	com! -range=% -buffer AppleScriptRun call s:runAppleScript(<line1>,<line2>)
 	au ftplugin-applescript FileType <buffer> if exists(':AppleScriptRun')==2|delc AppleScriptRun|endif
 
-	func! s:runApplescript(line1,line2)
-		let l:bufnr_save=bufnr('%')
-		let l:output=system('osascript -e ' . s:formatCode(a:line1,a:line2))
-		let l:bufname='[AppleScriptRun Output]'
+	func! s:runAppleScript(start,end) abort "{{{
+		if exists('g:applescript_config') && has_key(g:applescript_config,'run')
+			let config = extend(deepcopy(g:applescript_config.run),s:default_config.run,'keep')
+		else
+			let config = deepcopy(s:default_config.run)
+		endif
+		let current_bufnr = bufnr('%')
+		let script = getline(a:start,a:end)
+		let tempfile = s:tempfile()
+		let cmd = printf('osascript %s',shellescape(tempfile))
+
 		try
-			if bufwinnr('^' . l:bufname . '$')!=-1
-				exec bufwinnr('^' . l:bufname . '$') . 'wincmd w'
+			call writefile(script,tempfile)
+
+			if s:bufexists_on_this_tab(config.output.buffer_name)
+				call s:goto_win(config.output.buffer_name)
 			else
-				exec 'botright split ' . l:bufname
-				setlocal buftype=nofile nobuflisted noswapfile ft=AppleScriptRunOutput
+				execute config.output.open_command config.output.buffer_name
+				setlocal buftype=nofile nobuflisted noswapfile noundofile ft=AppleScriptRunOutput
 			endif
+
+			let output = system(cmd)
 			silent %delete _
-			0put =l:output
+			0put =output
+		catch
+			echohl Error
+			echomsg v:exception
+			echohl None
+			return
 		finally
-			exec bufwinnr(l:bufnr_save) . 'wincmd w'
+			call delete(tempfile)
+			call s:goto_win(current_bufnr)
 		endtry
-	endfunc
+	endfunc "}}}
 endif
 
 if executable('osacompile')
-	com! -buffer -range=% AppleScriptExport call s:exportApplescript(<line1>,<line2>)
+	com! -buffer -range=% AppleScriptExport call s:exportAppleScript(<line1>,<line2>)
 	au ftplugin-applescript FileType <buffer> if exists(':AppleScriptExport')==2|delc AppleScriptExport|endif
 
-	func! s:exportApplescript(line1,line2)
-		let l:product_name=input('Input export file name (*.scpt=script, *.scptd=script bundle, *.app=application bundle)' . "\n" . '-> ','','dir')
-		let l:flag_execute_only=input('Export execute only (Y[es]/N[o]) ')=~'^[yY]'
-		let l:flag_stay_open=0
-		let l:flag_use_startup_screen=0
-		if l:product_name=~'.*\.app$'
-			let l:flag_stay_open=input('Stay-open applet (Y[es]/N[o]) ')=~'^[yY]'
-			let l:flag_use_startup_screen=input('Use startup screen (Y[es]/N[o]) ')=~'^[yY]'
+	func! s:ask(msg) abort "{{{
+		return input(a:msg . ' (Y[es]/N[o]) ') =~? 'y'
+	endfunc "}}}
+	func! s:exportAppleScript(start,end) abort "{{{
+		let script = getline(a:start,a:end)
+		let tempfile = s:tempfile()
+		let product_name = ''
+		let config = {}
+		let config.execute_only = {'flag': 0, 'argv': '-x'}
+		let config.stay_open = {'flag': 0, 'argv': '-s'}
+		let config.use_startup_screen = {'flag': 0, 'argv': '-u'}
+
+		while product_name ==# ''
+			let product_name = input(
+						\"Input export file name (*.scpt=script, *.scptd=script bundle, *.app=application bundle)\n>> ",
+						\'','dir')
+		endwhile
+		let config.execute_only.flag = s:ask('Export execute only')
+		if product_name =~? '.\+\.app$'
+			let config.stay_open.flag = s:ask('Stay-open applet')
+			let config.use_startup_screen.flag = s:ask('Use startup screen')
 		endif
 
-		if getftype(l:product_name)!=''
-			echo printf('File "%s" exists. overwrite? [y/n]',l:product_name)
-			if nr2char(getchar())!=?'y'
-				echo 'Canceled export.'
+		if getftype(product_name) !=# ''
+			if !s:ask(printf('File "%s" exists. Overwrite?',product_name))
+				echo 'Canceled.'
 				return
 			endif
 		endif
 
-		let l:output=system(
-				\printf('osacompile -e %s -o %s %s %s %s',
-					\s:formatCode(a:line1,a:line2),
-					\l:product_name,
-					\l:flag_execute_only? '-x': '',
-					\l:flag_stay_open? '-s': '',
-					\l:flag_use_startup_screen? '-u': ''
-				\))
+		let flags = join(values(map(filter(config,'v:val.flag'),'v:val.argv')),' ')
+		let cmd = printf('osacompile -o %s %s %s',product_name,flags,tempfile)
 
-		if empty(l:output) | echo 'Export ' . l:product_name . ' successfully.' | return | endif
-		echomsg l:output
-		echomsg '[This message can be read by ":messages"]'
-	endfunc
+		try
+			call writefile(script,tempfile)
+			let output = system(cmd)
+
+			if output ==# ''
+				echo printf('Export "%s" successfully.',product_name)
+			else
+				echohl Error
+				echomsg '[command]' cmd
+				echomsg output
+				echohl None
+				echomsg '[You can read message again by executing ":messages"]'
+			endif
+		catch
+			echohl Error
+			echomsg v:exception
+			echohl None
+		finally
+			call delete(tempfile)
+		endtry
+	endfunc "}}}
 endif
 
 let &cpo=s:cpo_save
