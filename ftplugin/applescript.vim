@@ -1,6 +1,6 @@
 "Plugin Name: applescript filetype plugin
 "Author: mityu
-"Last Change: 03-Jun-2018.
+"Last Change: 26-Dec-2018.
 
 scriptencoding utf-8
 
@@ -12,8 +12,7 @@ let b:did_ftplugin=1
 let s:cpo_save=&cpo
 set cpo&vim
 
-inoremap <buffer> <S-CR> ¬<CR>
-inoremap <buffer> \<CR> ¬<CR>
+inoremap <buffer> <Plug>(applescript-line-connecting-CR) ¬<CR>
 
 setlocal fo-=t fo+=croql
 setlocal commentstring=--%s
@@ -22,10 +21,6 @@ setlocal comments=sO:*\ -,mxO:*\ \ ,exO:*),s1:(*,mb:*,ex:*),:--
 augroup ftplugin-applescript
 	au!
 augroup END
-
-"func! s:formatCode(line1,line2)
-"	return substitute(shellescape(join(getline(a:line1,a:line2),"\n")),'\\\n',"\n",'g')
-"endfunc
 
 let s:default_config = {}
 let s:default_config.run = {
@@ -142,7 +137,7 @@ if executable('osacompile')
 				echomsg '[command]' cmd
 				echomsg output
 				echohl None
-				echomsg '[You can read message again by executing ":messages"]'
+				echomsg '[You can read these message again by executing ":messages"]'
 			endif
 		catch
 			echohl Error
