@@ -1,0 +1,90 @@
+*applescript.txt*	Utility scripts for applescript.
+
+==============================================================================
+Contents						*applescript-contents*
+
+Introduction ........................... |applescript-introduction|
+Commands ............................... |applescript-commands|
+Mappings ............................... |applescript-key-mappings|
+Config  ............................... |applescript-config|
+
+==============================================================================
+Introducton				*applescript-introduction* *applescript.vim*
+
+This plugin provides following things:
+ - Syntax (from http://www.fastnlight.com/syntax/applescript)
+ - A command which executes current buffer.
+ - A command which exports current buffer as an application.
+ - A mapping which makes easy to input "¬<CR>".
+
+Latest Version:
+http://github.com/mityu/vim-applescript
+
+==============================================================================
+Command							*applescript-commands*
+
+							*:AppleScriptRun*
+:[range]AppleScriptRun
+	Execute current buffer.
+
+	|:AppleScriptRun| can take |:range|.
+	Default |:range| is "%".
+
+							*:AppleScriptExport*
+:[range]AppleScriptExport
+	Export current buffer to an application.
+
+	|:AppleScriptExport| can take |:range|.
+	Default |:range| is "%".
+
+==============================================================================
+Mapping						*applescript-key-mappings*
+
+					*<Plug>(applescript-line-connecting-CR)*
+<Plug>(applescript-line-connecting-CR)
+	This key mapping is provided on |Insert-mode|.
+	This just inputs "¬<CR>"
+
+						*applescript-default-mapping*
+Default mappings is NOT provided.
+
+When you define your mapping of these, you have to use |:imap| and |:map-<buffer>|.
+
+Example:				*applescript-key-mappings-example*
+>
+	" Map <Plug>(applescript-line-connecting-CR) to <S-CR>
+	:imap <buffer> <S-CR> <Plug>(applescript-line-connecting-CR)
+
+<
+
+==============================================================================
+Config				*applescript-config*  *g:applescript_config*
+
+You can define some options using |Dictionary| type variable,
+|g:applescript_config|.
+
+				*g:applescript_config.run.output.buffer_name*
+g:applescript_config.run.output.buffer_name
+	Set the output buffer's name.
+	(Default: "[AppleScriptRun Output]")
+
+				*g:applescript_config.run.output.open_command*
+g:applescript_config.run.output.open_command
+	Set a command to open the output buffer.
+	(Default: "botright split")
+
+Example:			*g:applescript_config-example*
+>
+	" Set the output buffer's name to "AppleScriptOutput", and
+	" command to open output buffer to "vsplit"
+	let g:applescript_config = {
+	    \ 'run' : {
+		\ 'output' : {
+		    \ 'buffer_name' : 'AppleScriptOutput',
+		    \ 'open_command' : 'vsplit'
+		    \ }
+		\ }
+	    \}
+<
+==============================================================================
+vim:tw=78:fo=tcq2mM:ts=8:ft=help:norl
