@@ -1,6 +1,6 @@
 "Plugin Name: applescript filetype plugin
 "Author: mityu
-"Last Change: 26-Dec-2018.
+"Last Change: 23-Oct-2019.
 
 scriptencoding utf-8
 
@@ -11,6 +11,14 @@ let b:did_ftplugin=1
 
 let s:cpo_save=&cpo
 set cpo&vim
+
+if !exists('*ApplescriptFtpluginUndo')
+	func ApplescriptFtpluginUndo()
+		setlocal fo< commentstring< comments<
+		silent! iunmap <buffer> <Plug>(applescript-line-connecting-CR)
+	endfunc
+endif
+let b:undo_ftplugin = 'call ApplescriptFtpluginUndo()'
 
 inoremap <buffer> <Plug>(applescript-line-connecting-CR) ¬<CR>
 
