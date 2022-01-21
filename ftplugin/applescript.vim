@@ -1,6 +1,6 @@
 "Plugin Name: applescript filetype plugin
 "Author: mityu
-"Last Change: 23-Oct-2019.
+"Last Change: 21-Jan-2022.
 
 scriptencoding utf-8
 
@@ -16,6 +16,14 @@ if !exists('*ApplescriptFtpluginUndo')
 	func ApplescriptFtpluginUndo()
 		setlocal fo< commentstring< comments<
 		silent! iunmap <buffer> <Plug>(applescript-line-connecting-CR)
+
+		if exists(':AppleScriptRun') == 2
+			delcommand -buffer AppleScriptRun
+		endif
+
+		if exists(':AppleScriptExport') == 2
+			delcommand -buffer AppleScriptExport
+		endif
 	endfunc
 endif
 let b:undo_ftplugin = 'call ApplescriptFtpluginUndo()'
@@ -25,10 +33,6 @@ inoremap <buffer> <Plug>(applescript-line-connecting-CR) ¬<CR>
 setlocal fo-=t fo+=croql
 setlocal commentstring=--%s
 setlocal comments=sO:*\ -,mxO:*\ \ ,exO:*),s1:(*,mb:*,ex:*),:--
-
-augroup ftplugin-applescript
-	au!
-augroup END
 
 let s:default_config = {}
 let s:default_config.run = {
@@ -59,7 +63,6 @@ endfunc "}}}
 
 if executable('osascript')
 	com! -range=% -buffer AppleScriptRun call s:runAppleScript(<line1>,<line2>)
-	au ftplugin-applescript FileType <buffer> if exists(':AppleScriptRun')==2|delc AppleScriptRun|endif
 
 	func! s:runAppleScript(start,end) abort "{{{
 		if exists('g:applescript_config') && has_key(g:applescript_config,'run')
@@ -99,7 +102,6 @@ endif
 
 if executable('osacompile')
 	com! -buffer -range=% AppleScriptExport call s:exportAppleScript(<line1>,<line2>)
-	au ftplugin-applescript FileType <buffer> if exists(':AppleScriptExport')==2|delc AppleScriptExport|endif
 
 	func! s:ask(msg) abort "{{{
 		return input(a:msg . ' (Y[es]/N[o]) ') =~? 'y'
