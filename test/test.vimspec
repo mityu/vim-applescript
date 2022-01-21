@@ -1,0 +1,32 @@
+call themis#helper('command').with(themis#helper('assert'))
+
+Describe ftdetect-applescript
+  Before all
+    runtime! ftdetect/applescript.vim
+  End
+
+  Before each
+    %bwipeout!
+  End
+
+  It sets filetype for *.scpt files
+    e a.scpt
+    Assert Equals(&filetype, 'applescript')
+  End
+
+  It sets filetype for *.applescript files
+    e a.applescript
+    Assert Equals(&filetype, 'applescript')
+  End
+
+  It sets filetype if 'osascript' appears in shebang
+    let tmpfile = tempname() . '.sh'
+    call writefile(['#!/ust/bin/osascript'], tmpfile)
+    try
+      execute 'e' fnameescape(tmpfile)
+      Assert Equals(&filetype, 'applescript')
+    finally
+      call delete(tmpfile)
+    endtry
+  End
+End
